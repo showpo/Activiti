@@ -90,13 +90,16 @@ public class WebConfigurer implements ServletContextListener {
      */
     private void initSpring(ServletContext servletContext, AnnotationConfigWebApplicationContext rootContext) {
         log.debug("Configuring Spring Web application context");
+        // 构造一个子容器
         AnnotationConfigWebApplicationContext appDispatcherServletConfiguration = new AnnotationConfigWebApplicationContext();
-        // 设置根上下文
+        // 设置根容器
         appDispatcherServletConfiguration.setParent(rootContext);
+        // set 配置类
         appDispatcherServletConfiguration.register(AppDispatcherServletConfiguration.class);
 
         // 注册 Spring MVC Servlet
         log.debug("Registering Spring MVC Servlet");
+        // 1 设置 servletContext 子容器 appDispatcherServletConfiguration
         ServletRegistration.Dynamic appDispatcherServlet = servletContext.addServlet("appDispatcher", 
                 new DispatcherServlet(appDispatcherServletConfiguration));
         appDispatcherServlet.addMapping("/app/*");
@@ -105,6 +108,7 @@ public class WebConfigurer implements ServletContextListener {
 
         // 注册 Activiti 公共 rest api
         log.debug("Registering Activiti public REST API");
+        // 2 设置 servletContext 子容器 apiDispatcherServletConfiguration
         AnnotationConfigWebApplicationContext apiDispatcherServletConfiguration = new AnnotationConfigWebApplicationContext();
         apiDispatcherServletConfiguration.setParent(rootContext);
         apiDispatcherServletConfiguration.register(ApiDispatcherServletConfiguration.class);
@@ -128,6 +132,9 @@ public class WebConfigurer implements ServletContextListener {
     }
 
 
+    /**
+     * 销毁方法【当容器关闭时，将 spring 容器销毁掉】
+     */
     @Override
     public void contextDestroyed(ServletContextEvent sce) {
         log.info("Destroying Web application");
