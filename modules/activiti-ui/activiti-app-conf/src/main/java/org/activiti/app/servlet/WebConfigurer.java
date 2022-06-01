@@ -42,17 +42,20 @@ public class WebConfigurer implements ServletContextListener {
     public void setContext(AnnotationConfigWebApplicationContext context) {
         this.context = context;
     }
-    
+    /**
+     * 初始化方法
+     */
     @Override
     public void contextInitialized(ServletContextEvent sce) {
         log.debug("Configuring Spring root application context");
 
         ServletContext servletContext = sce.getServletContext();
-
+        // 定义为根容器
         AnnotationConfigWebApplicationContext rootContext = null;
-        
+        // 当上下文容器为空，则重新构建容器
         if (context == null) {
             rootContext = new AnnotationConfigWebApplicationContext();
+            // 注册 ApplicationConfiguration
             rootContext.register(ApplicationConfiguration.class);
             
             if (rootContext.getServletContext() == null) {
@@ -65,29 +68,34 @@ public class WebConfigurer implements ServletContextListener {
         } else {
             rootContext = context;
             if (rootContext.getServletContext() == null) {
+                // 将 spring 容器和 servlet 容器做了双向绑定【将servlet 容器作为属性放到了 spring 中】
               rootContext.setServletContext(servletContext);
             }
         }
-        
+        // 将 spring 容器和 servlet 容器做了双向绑定【将 spring 容器作为属性放到了 servlet 中】
         servletContext.setAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE, rootContext);
 
         EnumSet<DispatcherType> disps = EnumSet.of(DispatcherType.REQUEST, DispatcherType.FORWARD, DispatcherType.ASYNC);
-
+        // 初始化 spring 和 Spring MVC
         initSpring(servletContext, rootContext);
+        // 初始化 spring 安全相关内容
         initSpringSecurity(servletContext, disps);
 
         log.debug("Web application fully configured");
     }
 
     /**
+     * 初始化 spring 和 Spring MVC
      * Initializes Spring and Spring MVC.
      */
     private void initSpring(ServletContext servletContext, AnnotationConfigWebApplicationContext rootContext) {
         log.debug("Configuring Spring Web application context");
         AnnotationConfigWebApplicationContext appDispatcherServletConfiguration = new AnnotationConfigWebApplicationContext();
+        // 设置根上下文
         appDispatcherServletConfiguration.setParent(rootContext);
         appDispatcherServletConfiguration.register(AppDispatcherServletConfiguration.class);
 
+        // 注册 Spring MVC Servlet
         log.debug("Registering Spring MVC Servlet");
         ServletRegistration.Dynamic appDispatcherServlet = servletContext.addServlet("appDispatcher", 
                 new DispatcherServlet(appDispatcherServletConfiguration));
@@ -95,6 +103,7 @@ public class WebConfigurer implements ServletContextListener {
         appDispatcherServlet.setLoadOnStartup(1);
         appDispatcherServlet.setAsyncSupported(true);
 
+        // 注册 Activiti 公共 rest api
         log.debug("Registering Activiti public REST API");
         AnnotationConfigWebApplicationContext apiDispatcherServletConfiguration = new AnnotationConfigWebApplicationContext();
         apiDispatcherServletConfiguration.setParent(rootContext);
